@@ -18,6 +18,7 @@
 #define REPORTID_LIGHT_OUTPUT_3   0x06
 #define REPORTID_LIGHT_COMPRESSED 0x0B
 
+#define WITH_COMPRESSION 1
 //#define DEBUG 1 //let meson handle it
 //#define SHMEM 1 //let meson handle it
 
@@ -538,7 +539,8 @@ fflush(logfile);
 		/* compressed transfer pending */
 		return;
 	}
-	
+
+	#if WITH_COMPRESSION == 1	
 	unsigned int size = 63;
 	int ret = lzfx_compress(brg, 93, g_compressed_buffer+2, &size);
 	if (ret == 0)
@@ -551,6 +553,7 @@ fflush(logfile);
 	}
 	
 	VERBOSE_DEBUG("transfer too large for compressed update\n");
+	#endif
 	/* Fallback to partial updates when not compressible enough */
 	if (!g_avail[0] && memcmp(g_brg+1, brg, 48) != 0)
 	{
