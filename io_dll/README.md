@@ -58,3 +58,11 @@ path64=aimeio_x64.dll
 
 ### Diva
 
+```
+[divaio]
+path=divaio_x64.dll
+hid_offset=0xEDA460
+
+[aimeio]
+path64=aimeio_x64.dll
+```
