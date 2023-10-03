@@ -9,3 +9,5 @@ EXPORTS
     chuni_io_slider_set_leds
     chuni_io_slider_start
     chuni_io_slider_stop
+	chuni_io_led_init
+	chuni_io_led_set_colors

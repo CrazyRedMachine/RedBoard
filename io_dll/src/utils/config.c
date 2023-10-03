@@ -46,6 +46,10 @@ void chuni_io_config_load(
                 cfg->tower_color_inactive,
                 _countof(cfg->tower_color_inactive),
                 filename);
+#if FUFUBOT == 1
+	cfg->real_led = GetPrivateProfileIntW(L"chuniio", L"real_led", 0, filename);
+	cfg->real_led |= GetPrivateProfileIntW(L"zhousensor", L"real_led", 0, filename);
+#endif
 
     for (i = 0 ; i < 32 ; i++) {
         swprintf(key, 7, L"cell%i", i + 1);

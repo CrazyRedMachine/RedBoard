@@ -80,8 +80,8 @@ static void status_print(const uint8_t *state)
 
 int main()
 {
-	printf("CHUNITEST\r\n---------\r\n");
-	//printf("api version = %04x\r\n", chuni_io_get_api_version()); /* not compatible with older dlls */
+	printf("CHUNITEST (for fufubot)\r\n---------\r\n");
+	printf("api version = %04x\r\n", chuni_io_get_api_version()); /* not compatible with older dlls */
 	printf("chuni_io_jvs_init() : ");
 	if (chuni_io_jvs_init() == -1)
 	{
@@ -105,7 +105,8 @@ int main()
 	uint8_t opbtn, beams;
 	while(true)
 	{
-			chuni_io_jvs_poll(&opbtn, &beams);
+		chuni_io_jvs_poll(&opbtn, &beams);
+	
 	{
 		if (opbtn != prev_opbtn)
 		{
@@ -118,6 +119,8 @@ int main()
 			prev_beams = beams;
 		}
 	}
+	//0x96 97 98  for side 0,     0xb4 b5 b6 for side 1     
+		chuni_io_led_set_colors(0, tower_colors);
 	}
 	#else
 		while(true);

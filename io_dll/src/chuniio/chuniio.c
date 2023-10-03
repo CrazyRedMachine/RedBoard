@@ -22,6 +22,10 @@
 //#define DEBUG 1 //let meson handle it
 //#define SHMEM 1 //let meson handle it
 
+#if FUFUBOT == 1
+#pragma message( "building for fufubot fork")
+#endif
+
 #if SHMEM == 1
 #pragma message( "SHMEM is ON, building for chusan")
 //#error test
@@ -30,11 +34,15 @@
 //#error test
 #endif
 
-#if DEBUG == 1
+#if DEBUG == 1 || DEBUG_FUFU == 1
 FILE *logfile;
 #define VERBOSE_DEBUG(...) do { fprintf(logfile, __VA_ARGS__); fflush(logfile); } while (0)
 #else
 #define VERBOSE_DEBUG(...) ;
+#endif
+
+#if FUFUBOT == 1
+bool g_real_led = false;
 #endif
 
 uint8_t g_brg_active[18] = {0};
@@ -291,6 +299,10 @@ VERBOSE_DEBUG("CRM chuni jvs init\n");
 
     chuni_io_config_load(&chuni_io_cfg, L".\\segatools.ini");
 
+	g_real_led = chuni_io_cfg.real_led;
+#if DEBUG_FUFU == 1
+VERBOSE_DEBUG("real led = %d\n", g_real_led);
+#endif		
 	/* parse rgb colors */
 	uint8_t red, green, blue;
 	swscanf( chuni_io_cfg.tower_color_active, L"#%02hhx%02hhx%02hhx", &red, &green, &blue );
@@ -439,17 +451,20 @@ we convert to :
 	*beams |= ((g_controller_data.buttons & 0x30) | ((g_controller_data.buttons & 0x07) << 1) | (g_controller_data.buttons & 0x08) >> 3);
 
 #if SHMEM == 0	
-	static uint8_t *prev_brg = g_brg_inactive;
-	
-	if (*beams != 0) g_brg_current = g_brg_active;
-	else g_brg_current = g_brg_inactive;
-	
-	if (prev_brg != g_brg_current)
+	if ( !g_real_led )
 	{
-		g_avail[2] = true;
+		static uint8_t *prev_brg = g_brg_inactive;
+		
+		if (*beams != 0) g_brg_current = g_brg_active;
+		else g_brg_current = g_brg_inactive;
+		
+		if (prev_brg != g_brg_current)
+		{
+			g_avail[2] = true;
+		}
+	
+		prev_brg = g_brg_current;
 	}
-
-	prev_brg = g_brg_current;
 #endif
 }
 
@@ -592,3 +607,67 @@ static unsigned int __stdcall chuni_io_slider_thread_proc(void *ctx)
 
     return 0;
 }
+
+#if FUFUBOT == 1
+int __cdecl chuni_io_led_init()
+{
+	fprintf(stderr, "CALLED chuni_io_led_init\n");
+	return 0;
+}
+
+void __cdecl chuni_io_led_set_colors(uint8_t side, uint8_t *data)
+{
+	if ( !g_real_led )
+		return;
+
+	uint8_t blue;
+	uint8_t red;
+	uint8_t green;
+
+	#if DEBUG_FUFU == 1
+fprintf(logfile, "CALLED chuni_io_led_set_colors %d 0x%p\n", side, data);
+
+for (int i = 0x90; i < 0xA0; i++)
+{
+ fprintf(logfile, "%02x ", data[i]);
+}
+fprintf(logfile, "\r\n");	
+fflush(logfile);
+	#endif
+	if (side == 0)
+	{
+//		memcpy(g_brg_current, data+0x96, 9);
+		red   = data[0x96];
+		green = data[0x97];
+		blue  = data[0x98];
+		
+		if ( g_brg_current[0] != blue || g_brg_current[1] != red || g_brg_current[2] != green )
+			g_avail[2] = true;
+		
+		for (int i=0; i<3; i++)
+		{
+			g_brg_current[3*i+0] = blue;
+			g_brg_current[3*i+1] = red;
+			g_brg_current[3*i+2] = green;
+		}
+	}
+	else if (side == 1)
+	{
+		//memcpy(g_brg_current+9, data+0xb4, 9);
+		red = data[0xb4];
+		green = data[0xb5];
+		blue = data[0xb6];
+		
+		if ( g_brg_current[0] != blue || g_brg_current[1] != red || g_brg_current[2] != green )
+			g_avail[2] = true;
+		
+		for (int i=3; i<6; i++)
+		{
+			g_brg_current[3*i+0] = blue;
+			g_brg_current[3*i+1] = red;
+			g_brg_current[3*i+2] = green;
+		}
+	}
+	
+}
+#endif
