@@ -146,6 +146,7 @@ static struct chuni_io_config chuni_io_cfg;
 
 static HANDLE g_device_handle;
 static HANDLE g_lights_handle;
+static HANDLE g_billboard_handle;
 
 // bitmasks for uint16_t g_controller_data.buttons
 #define TOWER_1 0x08
@@ -178,10 +179,15 @@ uint16_t __cdecl chuni_io_get_api_version(void)
 }
 
 bool g_avail[4] = {false};
+bool g_billboard_avail[11] = {false};
 uint8_t g_brg[98] = {0};
 uint8_t g_compressed_buffer[128] = {0};
 static HANDLE chuni_io_led_thread;
 static bool chuni_io_led_stop_flag;
+static HANDLE chuni_io_billboard_thread;
+static bool chuni_io_billboard_stop_flag;
+
+uint8_t g_billboard[11][10] = {0};
 
 static unsigned int __stdcall chuni_io_led_thread_proc(void *ctx)
 {
@@ -189,6 +195,14 @@ static unsigned int __stdcall chuni_io_led_thread_proc(void *ctx)
 		controller_write_leds(g_brg);
 	}
 	
+	return 0;
+}
+
+static unsigned int __stdcall chuni_io_billboard_thread_proc(void *ctx)
+{
+	while (!chuni_io_billboard_stop_flag) {
+		controller_write_billboard_leds(g_billboard);
+	}
 	return 0;
 }
 
@@ -287,9 +301,35 @@ static int controller_write_leds(const uint8_t *lamp_bits){
 	return 0;
 }
 
+static int controller_write_billboard_leds(const uint8_t **billboard){
+	#if SHMEM == 1
+	/* x86 only */
+	#ifdef _WIN64
+	return 0;
+	#endif
+	#endif
+	
+	if (g_billboard_handle == NULL)
+		return -1;
+
+	for (int i = 0; i<11; i++)
+	{
+		if ( g_billboard_avail[i] )
+		{
+			hid_set_report_raw(g_billboard_handle, billboard[i], 1+i, 31); //10 logical RGB leds per report, report id 1-11
+			cooldown = 0;
+			g_billboard_avail[i] = false;
+		}
+	}
+	
+	return 0;
+}
+
 
 #define VID 0x0f0d
 #define PID 0x0092
+#define VID_BILLBOARD 0x0f0d
+#define PID_BILLBOARD 0x1248
 HRESULT __cdecl chuni_io_jvs_init(void)
 {
 	#if DEBUG == 1
@@ -352,9 +392,20 @@ while (!shmem_load())
         g_lights_handle = NULL;		
 	}
 
+	/* try to open the HID billboard interface */
+	if ( hid_open_device(&g_billboard_handle, VID_BILLBOARD, PID_BILLBOARD, 1) != 0 )
+	{
+        g_billboard_handle = NULL;		
+	}
+
 	g_brg[0] = REPORTID_LIGHT_OUTPUT_1;
 	g_brg[49] = REPORTID_LIGHT_OUTPUT_2;
 	g_compressed_buffer[0] = REPORTID_LIGHT_COMPRESSED;
+
+	for (int i=0; i<11; i++)
+	{
+			g_billboard[i][0] = 1+i; //init billboard report IDs
+	}
 	
 	hid_set_report(g_lights_handle, g_brg_inactive, REPORTID_LIGHT_OUTPUT_3, 18); //light tower led	
 
@@ -504,6 +555,16 @@ void __cdecl chuni_io_slider_start(chuni_io_slider_callback_t callback)
 		0,
 		NULL);
 	}
+
+	if (chuni_io_billboard_thread == NULL) {
+		chuni_io_billboard_thread = (HANDLE) _beginthreadex(
+		NULL,
+		0,
+		chuni_io_billboard_thread_proc,
+		NULL,
+		0,
+		NULL);
+	}
 }
 
 void __cdecl chuni_io_slider_stop(void)
@@ -528,6 +589,14 @@ void __cdecl chuni_io_slider_stop(void)
 		CloseHandle(chuni_io_led_thread);
 		chuni_io_led_thread = NULL;
 		chuni_io_led_stop_flag = false;
+	}
+	
+	if (chuni_io_billboard_thread != NULL) {
+		chuni_io_billboard_stop_flag = true;
+		WaitForSingleObject(chuni_io_billboard_thread, INFINITE);
+		CloseHandle(chuni_io_billboard_thread);
+		chuni_io_billboard_thread = NULL;
+		chuni_io_billboard_stop_flag = false;
 	}
 }
 
@@ -669,5 +738,11 @@ fflush(logfile);
 		}
 	}
 	
+	//billboard leds
+		for (int i=0; i<(side+5); i++)
+		{
+			memcpy( &(g_billboard[6*side+i][1]), data+30*i, 30);
+			g_billboard_avail[6*side+i] = true;
+		}
 }
 #endif
