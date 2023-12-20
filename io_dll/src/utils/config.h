@@ -15,6 +15,7 @@ struct chuni_io_config {
     uint8_t vk_cell[32];
 	wchar_t tower_color_active[8];
 	wchar_t tower_color_inactive[8];
+	uint8_t real_led;
 };
 
 void chuni_io_config_load(
