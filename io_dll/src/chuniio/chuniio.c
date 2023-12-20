@@ -20,7 +20,7 @@
 bool g_real_led = false;
 #define WITH_COMPRESSION 1
 //#define DEBUG 1 //let meson handle it
-#define SHMEM 1 //let meson handle it
+//#define SHMEM 1 //let meson handle it
 
 #if SHMEM == 1
 #pragma message( "SHMEM is ON, building for chusan")
