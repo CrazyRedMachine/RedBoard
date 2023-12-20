@@ -32,6 +32,8 @@ void chuni_io_config_load(
     cfg->vk_service = GetPrivateProfileIntW(L"io3", L"service", '2', filename);
     cfg->vk_coin = GetPrivateProfileIntW(L"io3", L"coin", '3', filename);
     cfg->vk_ir = GetPrivateProfileIntW(L"io3", L"ir", VK_SPACE, filename);
+    cfg->real_led = GetPrivateProfileIntW(L"chuniio", L"real_led", 0, filename);
+	cfg->real_led |= GetPrivateProfileIntW(L"zhousensor", L"real_led", 0, filename);
 	GetPrivateProfileStringW(
                 L"chuniio",
                 L"tower_color_active",
@@ -46,7 +48,7 @@ void chuni_io_config_load(
                 cfg->tower_color_inactive,
                 _countof(cfg->tower_color_inactive),
                 filename);
-
+	
     for (i = 0 ; i < 32 ; i++) {
         swprintf(key, 7, L"cell%i", i + 1);
         cfg->vk_cell[i] = GetPrivateProfileIntW(
