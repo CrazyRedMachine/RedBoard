@@ -77,6 +77,7 @@ static void status_print(const uint8_t *state)
 		}
 	}
 }
+uint8_t tower_colors[255];
 
 int main()
 {
@@ -117,6 +118,25 @@ int main()
 		{
 			printf("beams changed!\r\n%02x\r\n",beams);
 			prev_beams = beams;
+			
+			if (beams != 0)
+			{
+				tower_colors[0x96] = 0xFF;
+				tower_colors[0x97] = 0x00;
+				tower_colors[0x98] = 0x00;
+				tower_colors[0xB4] = 0xFF;
+				tower_colors[0xB5] = 0x00;
+				tower_colors[0xB6] = 0x00;
+			}
+			else
+			{
+				tower_colors[0x96] = 0x00;
+				tower_colors[0x97] = 0xFF;
+				tower_colors[0x98] = 0x00;
+				tower_colors[0xB4] = 0x00;
+				tower_colors[0xB5] = 0xFF;
+				tower_colors[0xB6] = 0x00;
+			}
 		}
 	}
 	//0x96 97 98  for side 0,     0xb4 b5 b6 for side 1     

@@ -41,10 +41,7 @@ FILE *logfile;
 #define VERBOSE_DEBUG(...) ;
 #endif
 
-#if FUFUBOT == 1
 bool g_real_led = false;
-#endif
-
 uint8_t g_brg_active[18] = {0};
 uint8_t g_brg_inactive[18] = {0};
 uint8_t* g_brg_current = g_brg_inactive;
@@ -207,14 +204,17 @@ static int controller_read_buttons(uint8_t *pressure){
 	SHMEM_WRITE(&g_controller_data, sizeof(joy_report_t));
 	
 	/* now is time to check if beams should be active for new */
-	static uint8_t* prev_brg = g_brg_inactive;
-	if ( (g_controller_data.buttons & 0x3F) != 0) g_brg_current = g_brg_active;
-	else g_brg_current = g_brg_inactive;
-	
-	if (prev_brg != g_brg_current)
+	if (!g_real_led)
 	{
-		prev_brg = g_brg_current;
-		g_avail[2] = true;
+		static uint8_t* prev_brg = g_brg_inactive;
+		if ( (g_controller_data.buttons & 0x3F) != 0) g_brg_current = g_brg_active;
+		else g_brg_current = g_brg_inactive;
+		
+		if (prev_brg != g_brg_current)
+		{
+			prev_brg = g_brg_current;
+			g_avail[2] = true;
+		}
 	}
 	#endif
 	#endif
@@ -450,7 +450,6 @@ we convert to :
 */	
 	*beams |= ((g_controller_data.buttons & 0x30) | ((g_controller_data.buttons & 0x07) << 1) | (g_controller_data.buttons & 0x08) >> 3);
 
-#if SHMEM == 0	
 	if ( !g_real_led )
 	{
 		static uint8_t *prev_brg = g_brg_inactive;
@@ -465,7 +464,6 @@ we convert to :
 	
 		prev_brg = g_brg_current;
 	}
-#endif
 }
 
 HRESULT __cdecl chuni_io_slider_init(void)
@@ -608,7 +606,6 @@ static unsigned int __stdcall chuni_io_slider_thread_proc(void *ctx)
     return 0;
 }
 
-#if FUFUBOT == 1
 int __cdecl chuni_io_led_init()
 {
 	fprintf(stderr, "CALLED chuni_io_led_init\n");
@@ -670,4 +667,3 @@ fflush(logfile);
 	}
 	
 }
-#endif
